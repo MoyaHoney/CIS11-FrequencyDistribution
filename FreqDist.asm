@@ -50,8 +50,7 @@ INLOOP									; Input subroutine "loop" label.
 	ADD R4, R4, #1
 	ADD R1, R1, R4
 	BRz INDONE							; Input buffer filled, must return.
-	NOT R4, R4							; Two's compliment back to positive. 
-	ADD R4, R4, #1
+	LD R4, IN_LEN						; Two's compliment back to positive. 
 	ADD R1, R1, R4
 	; Test if character in R0 is Newline.
 	LD R2, ASC_NL
@@ -59,8 +58,7 @@ INLOOP									; Input subroutine "loop" label.
 	ADD R2, R2, #1
 	ADD R0, R0, R2
 	BRz INDONE							; Newline encountered, input is finished.
-	NOT R2, R2							; Two's compliment back to positive.
-	ADD R2, R2, #1
+	LD R2, ASC_NL						; Two's compliment back to positive.
 	ADD R0, R0, R2
 	; Store the character (R0) to the input buffer (R3), offset by the character counter (R1).
 	ADD R3, R1, R3
@@ -75,8 +73,6 @@ INLOOP									; Input subroutine "loop" label.
 	OUT
 	ADD R1, R1, #1
 	BR INLOOP
-	
-	; TODO: Optimize 2nd Two's Compliments statements to LD instructions instead.
 
 INDONE									; Input subroutine "Done" label. Used to escape from INLOOP.
 	; Load registers R0-R7 to the stack, excluding R6 since it is constant.
