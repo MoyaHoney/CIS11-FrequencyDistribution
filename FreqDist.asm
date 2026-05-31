@@ -3,7 +3,7 @@
 ; Assignment #:			Final Project
 ; Program name:			Character Counter for Names
 ; Program description:	Counts the amount of occurances for all legal ASCII characters within a given name.
-; Expected input:		Letters (A-Z || a-z); Spaces allowed; Newline delimited. 100 character maximum.
+; Expected input:		Letters (A-Z || a-z); Spaces allowed; Newline delimited. 30 character maximum.
 ; Expected output:		Each letter occurance that's (<= 1), followed by number of occurances, seperated by newlines. Spaces are not counted.
 ; Side effects:			Premature termination on illegal character.
 ; How to run:			Assemble, open assembled program in Simulate.exe, run and check the console for input/output.
@@ -16,6 +16,7 @@
 
 LD R6, RSA								; R6 is reserved as the RSA (Register Save Area)
 JSR INPUT
+JSR VALIDATE
 
 HALT
 
@@ -23,7 +24,7 @@ HALT
 INPUT
 ; =========================
 ; Input Subroutine
-; Gets input from the user until newline is entered. Outputs to INP. 100 characters max.
+; Gets input from the user until newline is entered. Outputs to INP. 30 characters max.
 ; =========================
 	; Save registers R0-R7 to the stack, excluding R6 since it is constant.
 	STR R0, R6, #0
@@ -76,13 +77,13 @@ INLOOP									; Input subroutine "loop" label.
 
 INDONE									; Input subroutine "Done" label. Used to escape from INLOOP.
 	; Load registers R0-R7 to the stack, excluding R6 since it is constant.
-	LTR R0, R6, #0
-	LTR R1, R6, #1
-	LTR R2, R6, #2
-	LTR R3, R6, #3
-	LTR R4, R6, #4
-	LTR R5, R6, #5
-	LTR R7, R6, #7
+	LDR R0, R6, #0
+	LDR R1, R6, #1
+	LDR R2, R6, #2
+	LDR R3, R6, #3
+	LDR R4, R6, #4
+	LDR R5, R6, #5
+	LDR R7, R6, #7
 	RET
 
 
@@ -94,7 +95,7 @@ INVALID
 	LEA R0, ERR
 	PUTS
 	HALT
-
+ERR				.STRINGZ	"Illegal character entered. Ending program.\n"
 
 ; =========================
 ; Validate Subroutine
@@ -118,7 +119,7 @@ STR R0, R6, #0
 	LEA R0, INP
 	AND R1, R1, #0
 	AND R2, R2, #0
-	LDI R3, R0
+	LDR R3, R0, #0
 		
 VALLOOP									; Validate subroutine "Loop" label.
 	; Test if (current character value) == (ASCII Space)
@@ -128,34 +129,95 @@ VALLOOP									; Validate subroutine "Loop" label.
 	ADD R3, R2, R3
 	BRz VALCONT							; Current character is (ASCII Space), initiate C-style "continue".
 	LD R2, ASC_SP						; Restore back to positive.
+	ADD R3, R2, R3
+	; Test if (current character value) == (UPPERCASE)
+	; if ch >= ASC_LA AND ch <= ASC_LZ do:
+        ; ch <- ch - (ASC_LA - ASC_UA)
+        ; COUNTS[ch - ASC_UA] <- COUNTS[ch - ASC_UA] + 1
+        ; continue
+	LD R2, ASC_UA						; R2 == ASC_UA
+	NOT R2, R2							; Two's compliment to negative.
+	ADD R2, R2, #1
+	AND R5, R5, #0						; Copy R2 to R5
+	ADD R5, R2, R5
+	ADD R5, R3, R5						; R5 == ASC_UA - ch (ch's index in COUNTS)
+	BRn INVALID							; Value is below ASCII range.
+	LD R2, ASC_UA
+	; Get upper limit of ASCII capital Letters
+	LD R2, ASC_UZ						; R2 == ASC_UZ
+	NOT R2, R2							; Two's compliment to negative.
+	ADD R2, R2, #1
+	ADD R3, R2, R3						; R3 = ASC_UZ - ch
+	BRp VALTLC							; Test for upper bound, INCLUDING lowercase
+	LD R2, ASC_UA
+	NOT R2, R2							; Two's compliment of ASC_UA
+	ADD R2, R2, #1
+	ADD R3, R2, R3						; ASC_UA - ch
+	BR ADDCOU
 	
+VALTLC									; Validate subroutine "Test Lower Case" label.
+	AND R2, R2, #0						; Clear R2 for reuse.
+	LD R2, ASC_UZ						; Restore R3 from previous testing value (ASC_UZ - ch)
+	ADD R3, R2, R3
+	;
+	LD R2, ASC_LA						; R2 == ASC_LA
+	NOT R2, R2							; Two's compliment to negative.
+	ADD R2, R2, #1
+	AND R5, R5, #0						; Copy R2 to R5
+	ADD R5, R2, R5
+	ADD R5, R3, R5						; R5 == ASC_LA - ch
+	BRn INVALID							; Value is between uppercase and lowercase, non-alphabetical character.
+	LD R2, ASC_LA
+	AND R3, R3, #0						; R3 == ch
+	ADD R3, R3, R5
+	ADD R3, R2, R3
+	; Get upper limit of ASCII lowercase Letters
+	LD R2, ASC_LZ						; R2 == ASC_LZ
+	NOT R2, R2							; Two's compliment to negative.
+	ADD R2, R2, #1
+	ADD R3, R2, R3						; R3 = ASC_LZ - ch
+	; If non-negative, ch is within lowercase bounds
+	BRn INVALID
+	AND R2, R2, #0						; Get constant of #-32 to offset lowercase to uppercase ch.
+	ADD R2, R2, #-16
+	ADD R2, R2, #-16
+	ADD R3, R2, R3						; Offset ch to become a uppercase letter.
+	
+ADDCOU
+	LEA R0, COUNTS						; Get address of COUNTS.
+	ADD R0, R0, R5						; Offset by index of number captured.
+	LDR R2, R0, #0						; R2 = COUNTS[ch]++, save back to array.
+	ADD R2, R2, #1
+	STR R2, R0, #0
 	
 VALCONT									; Validate subroutine "Continue" label. C-style "for-loop" processes handled here. Branched from various places inside VALLOOP.
 	; Increment (counter), set new (current character) ptr & value
 	ADD R1, R1, #1						; Increment counter
 	LEA R0, INP							; Set new current character ptr
 	ADD R0, R0, R1
-	LDI R3, R0							; Set new character value
+	LDR R3, R0, #0						; Set new character value
 	; Test loop condition
 	BRz VALEXIT							; Current character is 0x00, which is not a valid keyboard character, end loop.
 	BR VALLOOP
 	
 	
 VALEXIT
-	LTR R0, R6, #0
-	LTR R1, R6, #1
-	LTR R2, R6, #2
-	LTR R3, R6, #3
-	LTR R4, R6, #4
-	LTR R5, R6, #5
-	LTR R7, R6, #7
+	LDR R0, R6, #0
+	LDR R1, R6, #1
+	LDR R2, R6, #2
+	LDR R3, R6, #3
+	LDR R4, R6, #4
+	LDR R5, R6, #5
+	LDR R7, R6, #7
 	RET
+
+
 	
 ; Data
 
 COUNTS			.BLKW		#26			; Count buffer for A-Z
-INP				.BLKW		#100		; Input buffer
-RSA				.BLKW		#80			; Register Save Area
+INP				.BLKW		#30			; Input buffer
+RSA				.BLKW		#8			; Register Save Area
 
 ASC_UA  		.FILL		#65			; ASCII Uppercase "A"
 ASC_UZ			.FILL		#90			; ASCII Uppercase "Z"
@@ -163,10 +225,9 @@ ASC_LA			.FILL		#97			; ASCII Lowercase "a"
 ASC_LZ			.FILL		#122		; ASCII Lowercase "z"
 ASC_SP			.FILL		#32			; ASCII Space " "
 ASC_NL			.FILL		#10			; ASCII Newline
-IN_LEN			.FILL		#100		; Same value as input buffer size
+IN_LEN			.FILL		#30		; Same value as input buffer size
 
 PROMPT 			.STRINGZ	"Please enter your full name and hit enter: \n"
-ERR				.STRINGZ	"Illegal character entered. Ending program.\n"
 OUTPUT1			.STRINGZ	"Count of "
 OUTPUT2			.STRINGZ	" is "
 
