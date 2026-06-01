@@ -115,7 +115,8 @@ STR R0, R6, #0
 	; R0 is the current character PTR,
 	; R1 is iterative counter,
 	; R2 is compartive (==, >=, etc.) operand,
-	; R3 is current character VALUE.
+	; R3 is current character VALUE,
+	; R5 is IndexPosition of current character for use in COUNTS array.
 	LEA R0, INP
 	AND R1, R1, #0
 	AND R2, R2, #0
@@ -142,8 +143,7 @@ VALLOOP									; Validate subroutine "Loop" label.
 	ADD R5, R2, R5
 	ADD R5, R3, R5						; R5 == ASC_UA - ch (ch's index in COUNTS)
 	BRn INVALID							; Value is below ASCII range.
-	LD R2, ASC_UA
-	; Get upper limit of ASCII capital Letters
+	; Get upper limit of ASCII capital Letters.
 	LD R2, ASC_UZ						; R2 == ASC_UZ
 	NOT R2, R2							; Two's compliment to negative.
 	ADD R2, R2, #1
@@ -153,31 +153,30 @@ VALLOOP									; Validate subroutine "Loop" label.
 	NOT R2, R2							; Two's compliment of ASC_UA
 	ADD R2, R2, #1
 	ADD R3, R2, R3						; ASC_UA - ch
-	BR ADDCOU
-	
-VALTLC									; Validate subroutine "Test Lower Case" label.
 	AND R2, R2, #0						; Clear R2 for reuse.
 	LD R2, ASC_UZ						; Restore R3 from previous testing value (ASC_UZ - ch)
 	ADD R3, R2, R3
-	;
+	BR ADDCOU
+	
+VALTLC									; Validate subroutine "Test Lower Case" label.
+	LD R2, ASC_UZ						; Restore R3 back to base position from offset before branch point.
+	ADD R3, R2, R3
 	LD R2, ASC_LA						; R2 == ASC_LA
 	NOT R2, R2							; Two's compliment to negative.
 	ADD R2, R2, #1
 	AND R5, R5, #0						; Copy R2 to R5
 	ADD R5, R2, R5
-	ADD R5, R3, R5						; R5 == ASC_LA - ch
+	ADD R5, R3, R5						; R5 == ASC_LA - ch (ch's index in COUNTS)
 	BRn INVALID							; Value is between uppercase and lowercase, non-alphabetical character.
-	LD R2, ASC_LA
-	AND R3, R3, #0						; R3 == ch
-	ADD R3, R3, R5
-	ADD R3, R2, R3
-	; Get upper limit of ASCII lowercase Letters
+	; Get upper limit of ASCII lowercase letters.
 	LD R2, ASC_LZ						; R2 == ASC_LZ
 	NOT R2, R2							; Two's compliment to negative.
 	ADD R2, R2, #1
 	ADD R3, R2, R3						; R3 = ASC_LZ - ch
-	; If non-negative, ch is within lowercase bounds
-	BRn INVALID
+	; If non-positive, ch is within lowercase bounds
+	BRp INVALID
+	LD R2, ASC_LZ						; Restore R3 == ch
+	ADD R3, R2, R3
 	AND R2, R2, #0						; Get constant of #-32 to offset lowercase to uppercase ch.
 	ADD R2, R2, #-16
 	ADD R2, R2, #-16
