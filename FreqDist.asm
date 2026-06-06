@@ -11,12 +11,18 @@
 .ORIG x3000
 
 ; =========================
+; Pre-Main Data
+; =========================
+PROMPT 			.STRINGZ	"Please enter your full name and hit enter: \n"
+INP				.BLKW		#50			; Input buffer
+; =========================
 ; Main Routine
 ; =========================
 
 LD R6, RSA								; R6 is reserved as the RSA (Register Save Area)
 JSR INPUT
 JSR VALIDATE
+JSR OUTPUT
 
 HALT
 
@@ -211,11 +217,75 @@ VALEXIT
 	RET
 
 
+; =========================
+; Output Subroutine
+; Displays only letters with non-zero counts
+; =========================
+
+OUTPUT
+	STR R0, R6, #0
+	STR R1, R6, #1
+	STR R2, R6, #2
+	STR R3, R6, #3
+	STR R4, R6, #4
+	STR R5, R6, #5
+	STR R7, R6, #7
+	
+	AND R1, R1, #0		; R1 == Loop Counter
+
+OUTLOOP
+	ADD R2, R1, #-15	; R2 == #-26 (for the 26 letters of the alphabet?)
+	ADD R2, R2, #-11
+	BRz OUTDONE
+
+	LEA R3, COUNTS		; address of counts[i]
+	ADD R3, R3, R1
+	
+	LDR R4, R3, #0		; load count
+	
+	BRz NEXTCHAR		; if count = 0 go to next character
+	
+	LEA R0, OUTPUT1		; print "Count of "
+	PUTS
+
+	LD R5, ASC_UA		; print letter
+	ADD R0, R1, R5
+	OUT
+	
+	LEA R0, OUTPUT2		; print " is "
+	PUTS
+
+	;LD R5, ASC_Z
+	;ADD R0, R4, R5
+	;OUT
+	
+	LD R5, ASC_UA		; Offset to beggining of numeric ASCII characters
+	ADD R5, R5, #-16
+	ADD R5, R5, #-1
+	ADD R0, R4, R5		; Offset again by number of appearences of character, up to nine.
+	OUT
+
+	LD R0, ASC_NL
+	OUT
+
+NEXTCHAR
+	ADD R1, R1, #1
+	BR OUTLOOP
+OUTDONE
+	LDR R0, R6, #0
+	LDR R1, R6, #1
+	LDR R2, R6, #2
+	LDR R3, R6, #3
+	LDR R4, R6, #4
+	LDR R5, R6, #5
+	LDR R7, R6, #7
+RET
+
+
 	
 ; Data
 
 COUNTS			.BLKW		#26			; Count buffer for A-Z
-INP				.BLKW		#30			; Input buffer
 RSA				.BLKW		#8			; Register Save Area
 
 ASC_UA  		.FILL		#65			; ASCII Uppercase "A"
@@ -224,9 +294,8 @@ ASC_LA			.FILL		#97			; ASCII Lowercase "a"
 ASC_LZ			.FILL		#122		; ASCII Lowercase "z"
 ASC_SP			.FILL		#32			; ASCII Space " "
 ASC_NL			.FILL		#10			; ASCII Newline
-IN_LEN			.FILL		#30		; Same value as input buffer size
+IN_LEN			.FILL		#50			; Same value as input buffer size
 
-PROMPT 			.STRINGZ	"Please enter your full name and hit enter: \n"
 OUTPUT1			.STRINGZ	"Count of "
 OUTPUT2			.STRINGZ	" is "
 
