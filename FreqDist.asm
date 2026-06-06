@@ -254,10 +254,6 @@ OUTLOOP
 	
 	LEA R0, OUTPUT2		; print " is "
 	PUTS
-
-	;LD R5, ASC_Z
-	;ADD R0, R4, R5
-	;OUT
 	
 	LD R5, ASC_UA		; Offset to beggining of numeric ASCII characters
 	ADD R5, R5, #-16
