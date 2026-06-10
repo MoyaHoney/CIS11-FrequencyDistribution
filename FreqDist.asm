@@ -2,8 +2,8 @@
 ; Student name:			Justin Sweers, Keanu Arao, Suleny Perez
 ; Assignment #:			Final Project
 ; Program name:			Character Counter for Names
-; Program description:	Counts the amount of occurances for all legal ASCII characters within a given name.
-; Expected input:		Letters (A-Z || a-z); Spaces allowed; Newline delimited. 30 character maximum.
+; Program description:		Counts the amount of occurances for all legal ASCII characters within a given name.
+; Expected input:		Letters (A-Z || a-z); Spaces allowed; Newline delimited. 50 character maximum.
 ; Expected output:		Each letter occurance that's (<= 1), followed by number of occurances, seperated by newlines. Spaces are not counted.
 ; Side effects:			Premature termination on illegal character.
 ; How to run:			Assemble, open assembled program in Simulate.exe, run and check the console for input/output.
@@ -19,7 +19,7 @@ INP				.BLKW		#50			; Input buffer
 ; Main Routine
 ; =========================
 
-LD R6, RSA								; R6 is reserved as the RSA (Register Save Area)
+LEA R6, RSA								; R6 is reserved as the RSA (Register Save Area)
 JSR INPUT
 JSR VALIDATE
 JSR OUTPUT
@@ -30,7 +30,7 @@ HALT
 INPUT
 ; =========================
 ; Input Subroutine
-; Gets input from the user until newline is entered. Outputs to INP. 30 characters max.
+; Gets input from the user until newline is entered. Outputs to INP. 50 characters max.
 ; =========================
 	; Save registers R0-R7 to the stack, excluding R6 since it is constant.
 	STR R0, R6, #0
@@ -45,7 +45,8 @@ INPUT
 	PUTS
 	; Address of Input Buffer saved to R3.
 	LEA R3, INP
-	; Init character counter at R1 to #1, and get initial character.
+	; Init character counter at R1 to #0, and get initial character.
+	AND R1, R1, #0
 	GETC
 	ADD R1, R1, #1
 	OUT
@@ -109,7 +110,7 @@ ERR				.STRINGZ	"Illegal character entered. Ending program.\n"
 ; =========================
 VALIDATE
 ; Save registers R0-R7 to the stack, excluding R6 since it is constant.
-STR R0, R6, #0
+	STR R0, R6, #0
 	STR R1, R6, #1
 	STR R2, R6, #2
 	STR R3, R6, #3
@@ -117,7 +118,7 @@ STR R0, R6, #0
 	STR R5, R6, #5
 	STR R7, R6, #7
 
-	; Init values â€” 
+	; Init values — 
 	; R0 is the current character PTR,
 	; R1 is iterative counter,
 	; R2 is compartive (==, >=, etc.) operand,
@@ -138,10 +139,6 @@ VALLOOP									; Validate subroutine "Loop" label.
 	LD R2, ASC_SP						; Restore back to positive.
 	ADD R3, R2, R3
 	; Test if (current character value) == (UPPERCASE)
-	; if ch >= ASC_LA AND ch <= ASC_LZ do:
-        ; ch <- ch - (ASC_LA - ASC_UA)
-        ; COUNTS[ch - ASC_UA] <- COUNTS[ch - ASC_UA] + 1
-        ; continue
 	LD R2, ASC_UA						; R2 == ASC_UA
 	NOT R2, R2							; Two's compliment to negative.
 	ADD R2, R2, #1
@@ -195,14 +192,12 @@ ADDCOU
 	ADD R2, R2, #1
 	STR R2, R0, #0
 	
-VALCONT									; Validate subroutine "Continue" label. C-style "for-loop" processes handled here. Branched from various places inside VALLOOP.
-	; Increment (counter), set new (current character) ptr & value
+VALCONT									; Validate subroutine "Continue" label.
 	ADD R1, R1, #1						; Increment counter
 	LEA R0, INP							; Set new current character ptr
 	ADD R0, R0, R1
 	LDR R3, R0, #0						; Set new character value
-	; Test loop condition
-	BRz VALEXIT							; Current character is 0x00, which is not a valid keyboard character, end loop.
+	BRz VALEXIT							; End loop if null character
 	BR VALLOOP
 	
 	
@@ -234,7 +229,7 @@ OUTPUT
 	AND R1, R1, #0		; R1 == Loop Counter
 
 OUTLOOP
-	ADD R2, R1, #-15	; R2 == #-26 (for the 26 letters of the alphabet?)
+	ADD R2, R1, #-15
 	ADD R2, R2, #-11
 	BRz OUTDONE
 
@@ -255,10 +250,10 @@ OUTLOOP
 	LEA R0, OUTPUT2		; print " is "
 	PUTS
 	
-	LD R5, ASC_UA		; Offset to beggining of numeric ASCII characters
+	LD R5, ASC_UA		; Offset to beginning of numeric ASCII characters
 	ADD R5, R5, #-16
 	ADD R5, R5, #-1
-	ADD R0, R4, R5		; Offset again by number of appearences of character, up to nine.
+	ADD R0, R4, R5		; Offset again by number of appearances of character, up to nine.
 	OUT
 
 	LD R0, ASC_NL
@@ -267,6 +262,7 @@ OUTLOOP
 NEXTCHAR
 	ADD R1, R1, #1
 	BR OUTLOOP
+
 OUTDONE
 	LDR R0, R6, #0
 	LDR R1, R6, #1
@@ -275,14 +271,14 @@ OUTDONE
 	LDR R4, R6, #4
 	LDR R5, R6, #5
 	LDR R7, R6, #7
-RET
+	RET
 
 
 	
 ; Data
 
 COUNTS			.BLKW		#26			; Count buffer for A-Z
-RSA				.BLKW		#8			; Register Save Area
+RSA			.BLKW		#8			; Register Save Area
 
 ASC_UA  		.FILL		#65			; ASCII Uppercase "A"
 ASC_UZ			.FILL		#90			; ASCII Uppercase "Z"
