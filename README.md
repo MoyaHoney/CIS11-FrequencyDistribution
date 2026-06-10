@@ -2,7 +2,7 @@
 
 This project is for the team project of 26SPR-CIS-11-22428 at Moreno Valley College, lead by Kasey Nguyen.
 It contains LC-3 assembly source code for the end-of-semester project, of which Option C: "Character Counter for Names" was selected.
-Keanu Arao, Justin Sweers, and Suleny Perez are authors of this code.
+Keanu Arao, Justin Sweers, and Suleny Perez (codename "Team X3K") are authors of this code.
 
 
 
